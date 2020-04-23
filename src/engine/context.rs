@@ -1,10 +1,9 @@
 use wgpu::{
-    Adapter, CommandEncoderDescriptor, Device, Queue, RenderPipeline, Surface, SwapChain,
-    SwapChainDescriptor,
+    Adapter, CommandEncoderDescriptor, Device, Queue, Surface, SwapChain, SwapChainDescriptor,
 };
 use winit::window::Window;
 
-use super::frame::Frame;
+use super::{frame::Frame, texture::Texture};
 
 pub struct GfxContext {
     pub adapter: Adapter,
@@ -14,6 +13,7 @@ pub struct GfxContext {
     pub sc_desc: SwapChainDescriptor,
     pub size: (u32, u32),
     pub swapchain: SwapChain,
+    pub depth_texture: Texture,
     pub window: Window,
 }
 impl GfxContext {
@@ -45,13 +45,14 @@ impl GfxContext {
             present_mode: wgpu::PresentMode::Mailbox,
         };
         let swapchain = device.create_swap_chain(&surface, &sc_desc);
-
+        let depth_texture = Texture::create_depth_texture(&sc_desc, &device);
         Self {
             size: (win_width, win_height),
             swapchain,
             device,
             queue,
             sc_desc,
+            depth_texture,
             adapter,
             surface,
             window,
@@ -68,12 +69,13 @@ impl GfxContext {
             .create_command_encoder(&CommandEncoderDescriptor {
                 label: Some("Render Encoder"),
             });
-        Frame::new(encoder, frame)
+        Frame::new(encoder, frame, self)
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.size = (new_size.width, new_size.height);
         self.sc_desc.width = new_size.width;
         self.sc_desc.height = new_size.height;
         self.swapchain = self.device.create_swap_chain(&self.surface, &self.sc_desc);
+        self.depth_texture = Texture::create_depth_texture(&self.sc_desc, &self.device);
     }
 }

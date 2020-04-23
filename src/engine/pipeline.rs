@@ -70,18 +70,18 @@ impl PipelineDescriptor {
             }),
             primitive_topology: self.primitive_topo,
             color_states: &color_states,
-            depth_stencil_state: None, /*Some(DepthStencilStateDescriptor {
-                                           format: TextureFormat::Depth32Float,
-                                           depth_write_enabled: true,
-                                           depth_compare: CompareFunction::Less,
-                                           stencil_front: StencilStateFaceDescriptor::IGNORE,
-                                           stencil_back: StencilStateFaceDescriptor::IGNORE,
-                                           stencil_read_mask: 0,
-                                           stencil_write_mask: 0,
-                                       })*/
+            depth_stencil_state: Some(DepthStencilStateDescriptor {
+                format: TextureFormat::Depth32Float,
+                depth_write_enabled: true,
+                depth_compare: CompareFunction::Less,
+                stencil_front: StencilStateFaceDescriptor::IGNORE,
+                stencil_back: StencilStateFaceDescriptor::IGNORE,
+                stencil_read_mask: 0,
+                stencil_write_mask: 0,
+            }),
             vertex_state: VertexStateDescriptor {
                 index_format: IndexFormat::Uint32,
-                vertex_buffers: &[/*Vertex::desc()*/],
+                vertex_buffers: &[Vertex::desc()],
             },
             sample_count: 1,
             sample_mask: !0,

@@ -1,10 +1,7 @@
 mod engine;
 
 use futures::executor;
-use wgpu::{
-    Color, PrimitiveTopology, RenderPassColorAttachmentDescriptor, RenderPassDescriptor,
-    RenderPipeline,
-};
+use wgpu::{Color, PrimitiveTopology};
 use winit::{
     dpi::PhysicalSize,
     event::{Event, WindowEvent},
@@ -13,28 +10,39 @@ use winit::{
 };
 
 use engine::{
-    context::GfxContext, frame::Frame, pipeline::PipelineDescriptor, shader::ShaderDescriptor,
+    clear_screen::ClearScreen, context::GfxContext, mesh::Mesh, pipeline::PipelineDescriptor,
+    shader::ShaderDescriptor, vertex::Vertex,
 };
 
-fn render_triangle(frame: &mut Frame, pipeline: &RenderPipeline) {
-    let mut render_pass = frame.encoder.begin_render_pass(&RenderPassDescriptor {
-        color_attachments: &[RenderPassColorAttachmentDescriptor {
-            attachment: &frame.frame.view,
-            resolve_target: None,
-            load_op: wgpu::LoadOp::Clear,
-            store_op: wgpu::StoreOp::Store,
-            clear_color: Color {
-                r: 0.2,
-                g: 0.5,
-                b: 0.2,
-                a: 1.0,
-            },
-        }],
-        depth_stencil_attachment: None,
-    });
-    render_pass.set_pipeline(pipeline);
-    render_pass.draw(0..3, 0..1);
-}
+const VERTICES: &[Vertex] = &[
+    Vertex {
+        position: [-0.5, -0.5, 0.8],
+        color: [0.5, 0.0, 0.5, 1.0],
+    },
+    Vertex {
+        position: [0.5, -0.5, 0.8],
+        color: [0.5, 0.0, 0.5, 1.0],
+    },
+    Vertex {
+        position: [0.5, 0.5, 0.8],
+        color: [0.5, 0.0, 0.5, 1.0],
+    },
+    Vertex {
+        position: [0.5, -0.5, 0.0],
+        color: [0.5, 0.8, 0.5, 1.0],
+    },
+    Vertex {
+        position: [0.5, 0.5, 0.0],
+        color: [0.5, 0.8, 0.5, 1.0],
+    },
+    Vertex {
+        position: [-0.5, 0.5, 0.0],
+        color: [0.5, 0.8, 0.5, 1.0],
+    },
+];
+
+const INDICES: &[u32] = &[0, 1, 2, 3, 4, 5];
+
 fn main() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
@@ -43,14 +51,24 @@ fn main() {
         .expect("Failed to create window");
     let mut ctx = executor::block_on(GfxContext::new(window));
     let shader_desc = ShaderDescriptor {
-        vertex_shader: "shaders/hardcode_shader.vert",
-        frag_shader: "shaders/hardcode_shader.frag",
+        vertex_shader: "shaders/shader.vert",
+        frag_shader: "shaders/shader.frag",
     };
     let pipeline_desc = PipelineDescriptor {
         alpha_blending: true,
         primitive_topo: PrimitiveTopology::TriangleList,
     };
     let pipeline = pipeline_desc.build(&ctx, shader_desc);
+    let clear_screen = ClearScreen::new(
+        &ctx,
+        Color {
+            r: 0.5,
+            g: 0.5,
+            b: 0.5,
+            a: 1.0,
+        },
+    );
+    let mesh = Mesh::new(&ctx, VERTICES, INDICES);
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
         match event {
@@ -69,8 +87,9 @@ fn main() {
             },
             Event::RedrawRequested(_) => {
                 let mut frame = ctx.next_frame();
-                render_triangle(&mut frame, &pipeline);
-                frame.finish(&ctx);
+                clear_screen.draw(&mut frame);
+                mesh.draw(&mut frame, &pipeline);
+                frame.finish();
             }
             _ => (),
         }
